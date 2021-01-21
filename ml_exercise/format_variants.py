@@ -28,6 +28,7 @@ args = parser.parse_args()
 pathogenic = pd.read_csv(args.pathogenic[0], sep='\t')
 neutral = pd.read_csv(args.neutral[0], sep='\t')
 id_map = pd.read_csv(args.id_map[0], sep='\t')
+id_map = id_map.rename(columns={"From": "ID_UNIPROT", "To": "PROTEIN_NAME"})
 outfile = args.outfile[0]
 
 #Assign pathogenicity
@@ -36,15 +37,15 @@ neutral['pathogenicity']=0
 #Mrge
 all = pathogenic.append(neutral)
 #Merge to get protein name
-pdb.set_trace()
+all = pd.merge(all,id_map,on='ID_UNIPROT',how='left')
 #Format for ensembl variant recoder
-all['variant_id']=all['ID_UNIPROT']+':p.'+all['MUTATION']
+all['variant_id']=all['PROTEIN_NAME']+':p.'+all['MUTATION']
 
 server = "http://rest.ensembl.org"
 ext = "/variant_recoder/homo_sapiens"
 headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
 #Write request str
-ids = all['variant_id'].values[:10]
+ids = all['variant_id'].values
 request_str = '{ "ids" : ['
 for id in ids:
     request_str +='"'+id+'",'
