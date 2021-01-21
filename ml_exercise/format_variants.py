@@ -40,7 +40,6 @@ all = pathogenic.append(neutral)
 all = pd.merge(all,id_map,on='ID_UNIPROT',how='left')
 #Format for ensembl variant recoder
 all['variant_id']=all['PROTEIN_NAME']+':p.'+all['MUTATION']
-
 server = "http://rest.ensembl.org"
 ext = "/variant_recoder/homo_sapiens"
 headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
@@ -52,18 +51,17 @@ pos = []
 DNAref = []
 DNAalt = []
 ids = all['variant_id'].values
-for i in range(0,365000,1000):
+for i in range(0,500,10):
     request_str = '{ "ids" : ['
-    for id in ids[i:i+1000]:
+    for id in ids[i:i+10]:
         request_str +='"'+id+'",'
     request_str = request_str[:-1]+'] }'
     #data='{ "ids" : ["A0PJY2:p.H278Y" ] }'
     result = requests.post(server+ext, headers=headers, data=request_str)
     decoded = result.json()
     #Save
-    file = open("test.json",'w')
+    file = open("result"+str(i)+".json",'w')
     json.dump(decoded,file)
-    pdb.set_trace()
     #dbNSFP needs chromosome, pos, DNAref, DNAalt
 
     for d in decoded:
@@ -77,4 +75,4 @@ for i in range(0,365000,1000):
 
     # 'hgvsg': ['NC_000007.14:g.122303281G>A']
     #chr 7 band 14 position 122303281 subst G to A
-    pdb.set_trace()
+pdb.set_trace()
