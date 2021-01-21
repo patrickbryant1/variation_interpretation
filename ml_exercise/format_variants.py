@@ -45,32 +45,36 @@ server = "http://rest.ensembl.org"
 ext = "/variant_recoder/homo_sapiens"
 headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
 #Write request str
-ids = all['variant_id'].values
-request_str = '{ "ids" : ['
-for id in ids:
-    request_str +='"'+id+'",'
-request_str = request_str[:-1]+'] }'
-#data='{ "ids" : ["A0PJY2:p.H278Y" ] }'
-result = requests.post(server+ext, headers=headers, data=request_str)
-decoded = result.json()
-#Save
-file = open("test.json",'w')
-json.dump(decoded,file)
-
-#dbNSFP needs chromosome, pos, DNAref, DNAalt
+#There is a limit of 1000
+#'error': 'POST message too large. You have submitted 365603 elements but a limit of 1000 is in place. Request smaller regions or lists of IDs'
 chr = []
 pos = []
 DNAref = []
 DNAalt = []
-for d in decoded:
-    d_hgvsg = d['hgvsg'][0]
-    d_hgvsg = d_hgvsg.split('_')[1]
-    chr.append(int(d_hgvsg.split('.')[0]))
-    d_hgvsg = d_hgvsg.split('.')[2]
-    pos = int(d_hgvsg[:-3])
-    DNAref.append(d_hgvsg[-3])
-    DNAalt.append(d_hgvsg[-1])
+ids = all['variant_id'].values
+for i in range(0,365000,1000):
+    request_str = '{ "ids" : ['
+    for id in ids[i:i+1000]:
+        request_str +='"'+id+'",'
+    request_str = request_str[:-1]+'] }'
+    #data='{ "ids" : ["A0PJY2:p.H278Y" ] }'
+    result = requests.post(server+ext, headers=headers, data=request_str)
+    decoded = result.json()
+    #Save
+    file = open("test.json",'w')
+    json.dump(decoded,file)
+    pdb.set_trace()
+    #dbNSFP needs chromosome, pos, DNAref, DNAalt
 
-# 'hgvsg': ['NC_000007.14:g.122303281G>A']
-#chr 7 band 14 position 122303281 subst G to A
-pdb.set_trace()
+    for d in decoded:
+        d_hgvsg = d['hgvsg'][0]
+        d_hgvsg = d_hgvsg.split('_')[1]
+        chr.append(int(d_hgvsg.split('.')[0]))
+        d_hgvsg = d_hgvsg.split('.')[2]
+        pos = int(d_hgvsg[:-3])
+        DNAref.append(d_hgvsg[-3])
+        DNAalt.append(d_hgvsg[-1])
+
+    # 'hgvsg': ['NC_000007.14:g.122303281G>A']
+    #chr 7 band 14 position 122303281 subst G to A
+    pdb.set_trace()
