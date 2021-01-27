@@ -34,6 +34,11 @@ except:
     sys.exit()
 #Merge the variants with the chr pposition
 variants = pd.merge(variants,hgvs_c_to_pos,on='hgvs_c',how='left')
+#Remove missing
+keep_indices = variants['Chromosomal Variant'].dropna().index
+print(str(len(variants)-len(keep_indices))+' out of '+str(len(variants))+' variants w/o chr mapping')
+variants = variants.loc[keep_indicdes]
+variants = variants.reset_index()
 
 #dbNSFP needs chromosome, pos, DNAref, DNAalt
 with open(outfile,'w') as file:
