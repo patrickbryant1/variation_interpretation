@@ -37,10 +37,14 @@ variants = pd.merge(variants,hgvs_c_to_pos,on='hgvs_c',how='left')
 #Remove missing
 keep_indices = variants['Chromosomal Variant'].dropna().index
 print(str(len(variants)-len(keep_indices))+' out of '+str(len(variants))+' variants w/o chr mapping')
-variants = variants.loc[keep_indicdes]
+variants = variants.loc[keep_indices]
 variants = variants.reset_index()
 
 #dbNSFP needs chromosome, pos, DNAref, DNAalt
+chromosomes = []
+positions = []
+DNAref = []
+DNAalt = []
 with open(outfile,'w') as file:
     for index,row in variants.iterrows():
         info = row['Chromosomal Variant'].split('.')
@@ -49,4 +53,17 @@ with open(outfile,'w') as file:
         ref = info[2][-3]
         alt = info[2][-1]
         file.write(str(chr)+' '+pos+' '+ref+' '+alt+'\n')
+        #Save
+        chromosomes.append(chr)
+        positions.append(pos)
+        DNAref.append(ref)
+        DNAalt.append(alt)
+
+#Add info to df
+variants['chr']=chromosomes
+variants['pos']=positions
+variants['DNAref']=DNAref
+variants['DNAalt']=DNAalt
+#Save df
+variants.to_csv('mapped_variants.csv',index=None)
 pdb.set_trace()
