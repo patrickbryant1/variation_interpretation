@@ -63,6 +63,9 @@ pred = pd.read_csv(args.pred[0], sep='\t')
 true = pd.read_csv(args.true[0])
 outdir = args.outdir[0]
 
+#Pred contains duplicates
+keep_inds = pred[['chr','pos','ref','alt']].drop_duplicates().index
+pred = pred.loc[keep_inds]
 #Merge pred and true
 merged_df = pd.merge(pred, true,  how='left', left_on=['chr','pos','ref','alt'], right_on = ['chr','pos','DNAref','DNAalt'])
 
