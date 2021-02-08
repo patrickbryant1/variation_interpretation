@@ -7,8 +7,7 @@ import sys
 import os
 import numpy as np
 import pandas as pd
-import requests
-import json
+from sklearn.metrics import roc_curve, roc_auc_score
 import pdb
 #Arguments for argparse module:
 parser = argparse.ArgumentParser(description = '''Write the format needed for dbNSFP.''')
@@ -32,14 +31,14 @@ def evaluate(true_sig,pred_sig):
     MCC = (TP*TN-FP*FN)/np.sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
     nMCC = (1+MCC)/2
     OPM = ((PPV+NPV)*(Sensitivity+Specificity)*(Accuracy+nMCC))/8
-    AUC
+    AUC - from scikit
     '''
     #Get the positive and neg
-    P = np.argwhere(true_sig=='Pathogenic')[:,0]
-    N = np.argwhere(true_sig=='Benign')[:,0]
+    P = np.argwhere(true_sig==1)[:,0]
+    N = np.argwhere(true_sig==0)[:,0]
     #Get the pred pos and neg
-    pred_P = np.argwhere(pred_sig=='Pathogenic')[:,0]
-    pred_N = np.argwhere(pred_sig=='Benign')[:,0]
+    pred_P = np.argwhere(pred_sig==1)[:,0]
+    pred_N = np.argwhere(pred_sig==0)[:,0]
     #TP and TN
     TP = np.intersect1d(P,pred_P).shape[0]
     FP = len(pred_P)-TP
@@ -50,11 +49,13 @@ def evaluate(true_sig,pred_sig):
     Specificity = TN/N.shape[0]
     PPV = TP/(TP+FP)
     NPV = TN/(TN+FN)
-    Accuracy = np.argwhere(true_sig==pred_sig).shape[0]
+    Accuracy = np.argwhere(true_sig==pred_sig).shape[0]/len(pred_sig)
     MCC = (TP*TN-FP*FN)/np.sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
     nMCC = (1+MCC)/2
     OPM = ((PPV+NPV)*(Sensitivity+Specificity)*(Accuracy+nMCC))/8
-    pdb.set_trace()
+    AUC  = roc_auc_score(true_sig,pred_sig)
+
+    return Sensitivity, Specificity, PPV, NPV, Accuracy, MCC, OPM, AUC
 
 
 #####MAIN#####
@@ -89,7 +90,50 @@ for key in predictors:
         inds = selection[selection[key]==old].index
         selection.at[inds,key]=new
 
+#Replace pathogenic with 1 and benighn with 0
+selection = selection.replace('Pathogenic',1)
+selection = selection.replace('Benign',0)
 
+Sensitivities = []
+Specificities = []
+PPVs =[]
+NPVs = []
+Accuracies = []
+MCCs = []
+OPMs = []
+AUCs = []
+N_predicted = []
 #Evaluate preds
 for predictor in selection.columns[1:]:
-    evaluate(selection.clinical_significance.values,selection[predictor].values)
+
+    #Get only the indices where something has been predicted
+    pred_inds = selection[(selection[predictor]==0) | (selection[predictor]==1)].index
+    print(predictor,len(pred_inds),'out of',len(selection))
+    Sensitivity, Specificity, PPV, NPV, Accuracy, MCC, OPM, AUC = evaluate(selection.loc[pred_inds,'clinical_significance'].values,selection.loc[pred_inds,predictor].values)
+    #Save
+    Sensitivities.append(Sensitivity)
+    Specificities.append(Specificity)
+    PPVs.append(PPV)
+    NPVs.append(NPV)
+    Accuracies.append(Accuracy)
+    MCCs.append(MCC)
+    OPMs.append(OPM)
+    AUCs.append(AUC)
+    N_predicted.append(len(pred_inds))
+
+#Create df
+score_df = pd.DataFrame()
+score_df['Model']=selection.columns[1:]
+score_df['Sensitivity']=Sensitivities
+score_df['Specificity']=Specificities
+score_df['PPV']=PPVs
+score_df['NPV']=NPVs
+score_df['Accuracy']=Accuracies
+score_df['MCC']=MCCs
+score_df['OPM']=OPMs
+score_df['AUC']=AUCs
+score_df['Number of predictions']=N_predicted
+
+#Save
+score_df = score_df.round(2)
+score_df.to_csv(outdir+'score_df.csv')
