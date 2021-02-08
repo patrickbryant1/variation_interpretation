@@ -24,7 +24,38 @@ parser.add_argument('--outdir', nargs=1, type= str,
 #####FUNCTIONS#####
 def evaluate(true_sig,pred_sig):
     '''Compare the true and pred sig
+    Sensitivity = TP/P
+    Specificity = TN/N
+    PPV = TP/(TP+FP)
+    NPV = TN/(TN+FN)
+    Accuracy = pred correct/all
+    MCC = (TP*TN-FP*FN)/np.sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+    nMCC = (1+MCC)/2
+    OPM = ((PPV+NPV)*(Sensitivity+Specificity)*(Accuracy+nMCC))/8
+    AUC
     '''
+    #Get the positive and neg
+    P = np.argwhere(true_sig=='Pathogenic')[:,0]
+    N = np.argwhere(true_sig=='Benign')[:,0]
+    #Get the pred pos and neg
+    pred_P = np.argwhere(pred_sig=='Pathogenic')[:,0]
+    pred_N = np.argwhere(pred_sig=='Benign')[:,0]
+    #TP and TN
+    TP = np.intersect1d(P,pred_P).shape[0]
+    FP = len(pred_P)-TP
+    TN = np.intersect1d(N,pred_N).shape[0]
+    FN= len(pred_N)-TN
+    #Metrics
+    Sensitivity = TP/P.shape[0]
+    Specificity = TN/N.shape[0]
+    PPV = TP/(TP+FP)
+    NPV = TN/(TN+FN)
+    Accuracy = np.argwhere(true_sig==pred_sig).shape[0]
+    MCC = (TP*TN-FP*FN)/np.sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+    nMCC = (1+MCC)/2
+    OPM = ((PPV+NPV)*(Sensitivity+Specificity)*(Accuracy+nMCC))/8
+    pdb.set_trace()
+
 
 #####MAIN#####
 args = parser.parse_args()
@@ -54,9 +85,8 @@ for key in predictors:
         old,new = item.split(':')
         inds = selection[selection[key]==old].index
         selection.at[inds,key]=new
-pdb.set_trace()
-#Add info to df
 
-#Save df
-variants.to_csv('mapped_variants.csv',index=None)
-pdb.set_trace()
+
+#Evaluate preds
+for predictor in selection.columns[1:]:
+    evaluate(selection.clinical_significance.values,selection[predictor].values)
