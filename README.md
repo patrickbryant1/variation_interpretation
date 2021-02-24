@@ -1,2 +1,2 @@
 # variation_interpretation
-Code for variant interpretation
+Code for the course variant interpretation
